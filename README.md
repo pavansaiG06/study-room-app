@@ -4,6 +4,8 @@ A modern, real-time virtual co-working workspace with 3D cosmic graphics, peer-t
 
 Designed specifically for **20–30 concurrent users** and engineered to run **100% within free tiers** across hosting, database, and real-time networking.
 
+The Website is now live at: https://study-room-app-fkd9.onrender.com/ !!!
+
 ---
 
 ## 🌟 Features
