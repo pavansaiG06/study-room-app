@@ -1,0 +1,367 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --ease-fluid: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-pop: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background-color: #0b0e14;
+  color: #e2e8f0;
+  overflow-wrap: anywhere;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+p, li {
+  text-wrap: pretty;
+}
+
+img, video {
+  max-inline-size: 100%;
+}
+
+/* Touch device target sizing for compact icon buttons inside toolbars/controls */
+@media (pointer: coarse) {
+  .touch-control {
+    min-width: 42px;
+    min-height: 42px;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(11, 14, 20, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.6);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: rgba(18, 24, 36, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(22, 29, 44, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-input {
+  background: rgba(11, 14, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+.glass-input:focus {
+  border-color: #8b5cf6;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.22);
+}
+
+/* Discord & Google Meet Micro-interactions */
+.btn-tactile {
+  transition: transform 150ms var(--ease-fluid), background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .btn-tactile:active:not(:disabled) {
+    transform: scale(0.94);
+  }
+}
+
+.card-interactive {
+  transition: transform 240ms var(--ease-fluid), border-color 220ms ease, box-shadow 240ms ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @media (hover: hover) {
+    .card-interactive:hover {
+      transform: translateY(-4px);
+    }
+  }
+  .card-interactive:active {
+    transform: scale(0.985);
+  }
+}
+
+/* View Transition API styling (progressive enhancement) */
+::view-transition-old(studyhub-stage),
+::view-transition-new(studyhub-stage) {
+  animation-duration: 240ms;
+  animation-timing-function: var(--ease-fluid);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* Keyframes (Compositor-only transform & opacity) */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translate3d(20px, 0, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes fadeInSoft {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes popoverPop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes modalBackdropFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalPanelPop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.955);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes viewStageEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes chatMsgEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes reactionFloatUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.7) rotate(-6deg);
+  }
+  15% {
+    opacity: 1;
+    transform: translate3d(-6px, -24px, 0) scale(1.12) rotate(4deg);
+  }
+  55% {
+    opacity: 0.95;
+    transform: translate3d(8px, -110px, 0) scale(1) rotate(-4deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-4px, -210px, 0) scale(0.88) rotate(6deg);
+  }
+}
+
+@keyframes speakingHalo {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.16);
+    opacity: 0.12;
+  }
+}
+
+@keyframes eqPulse {
+  0%, 100% {
+    transform: scaleY(0.32);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.eq-bar {
+  transform-origin: bottom;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-slide-in {
+    animation: slideInRight 280ms var(--ease-fluid) both;
+  }
+
+  .animate-fade-in {
+    animation: fadeInSoft 220ms var(--ease-fluid) both;
+  }
+
+  .animate-popover-in {
+    animation: popoverPop 200ms var(--ease-pop) both;
+  }
+
+  .modal-backdrop-enter {
+    animation: modalBackdropFade 200ms ease-out both;
+  }
+
+  .modal-panel-enter {
+    animation: modalPanelPop 260ms var(--ease-pop) both;
+  }
+
+  .animate-view-enter {
+    animation: viewStageEnter 260ms var(--ease-fluid) backwards;
+  }
+
+  .animate-chat-msg {
+    animation: chatMsgEnter 200ms var(--ease-fluid) both;
+  }
+
+  .animate-reaction-float {
+    animation: reactionFloatUp 2.5s var(--ease-fluid) forwards;
+  }
+
+  .speaking-halo {
+    animation: speakingHalo 1.5s ease-in-out infinite;
+  }
+
+  .eq-bar-1 {
+    animation: eqPulse 0.85s ease-in-out infinite;
+  }
+  .eq-bar-2 {
+    animation: eqPulse 0.85s ease-in-out 0.22s infinite;
+  }
+  .eq-bar-3 {
+    animation: eqPulse 0.85s ease-in-out 0.44s infinite;
+  }
+}
+
+/* Native @starting-style enhancement for mount transitions */
+@media (prefers-reduced-motion: no-preference) {
+  @starting-style {
+    .modal-backdrop-enter {
+      opacity: 0;
+    }
+    .modal-panel-enter {
+      opacity: 0;
+      transform: translate3d(0, 14px, 0) scale(0.955);
+    }
+  }
+}
+
+/* Modern Scroll-Driven Entrance Reveals with IntersectionObserver Fallback */
+@keyframes editorialReveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes subtleParallaxDrift {
+  from {
+    transform: translateY(22px);
+  }
+  to {
+    transform: translateY(-22px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    .scroll-reveal-card {
+      animation: editorialReveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 65%;
+    }
+
+    .scroll-parallax-band {
+      animation: subtleParallaxDrift linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+  }
+
+  /* Fallback for browsers without native view() scroll-driven timelines */
+  .scroll-reveal-fallback {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.65s var(--ease-fluid), transform 0.65s var(--ease-fluid);
+  }
+  .scroll-reveal-fallback[data-revealed='true'] {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Accessibility: pause ambient decorative motion when toggled */
+.motion-paused * {
+  animation-play-state: paused !important;
+}

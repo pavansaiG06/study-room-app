@@ -1,0 +1,15 @@
+services:
+  studyhub:
+    build: .
+    container_name: studyhub-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_PATH: /app/data/studyhub.db
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data:/app/data

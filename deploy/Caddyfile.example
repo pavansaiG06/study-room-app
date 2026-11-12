@@ -1,0 +1,10 @@
+# Replace with your DuckDNS domain (e.g. mystudyhub.duckdns.org) or <PUBLIC-IP>.sslip.io
+# Copy to /etc/caddy/Caddyfile on your Oracle Cloud Ubuntu server:
+#   sudo cp deploy/Caddyfile.example /etc/caddy/Caddyfile && sudo systemctl restart caddy
+
+your-domain.duckdns.org {
+    encode zstd gzip
+
+    # Reverse proxy HTTP API, SPA frontend, and Socket.IO WebSockets seamlessly
+    reverse_proxy 127.0.0.1:3000
+}
