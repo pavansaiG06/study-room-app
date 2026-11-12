@@ -27,6 +27,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from './Toast';
 import { UserAvatar } from './UserAvatar';
 import { AuthBackdrop, LANDING_THEMES } from './AuthBackdrop';
+import { AppealModal } from './AppealModal';
 import { compressAvatarImage } from '../utils/image';
 
 const AVATAR_COLORS = ['#e2b66d', '#34d399', '#60a5fa', '#a78bfa', '#f472b6', '#fb7185', '#22d3ee'];
@@ -63,6 +64,7 @@ export function LandingAuthPage({ onSignedUp }) {
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showAppealModal, setShowAppealModal] = useState(false);
 
   const pageRef = useRef(null);
   const authPortalRef = useRef(null);
@@ -533,9 +535,21 @@ export function LandingAuthPage({ onSignedUp }) {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-start gap-2">
-              <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-400" />
-              <span>{error}</span>
+            <div className="mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium flex flex-col gap-2">
+              <div className="flex items-start gap-2">
+                <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-400" />
+                <span className="flex-1">{error}</span>
+              </div>
+              {error.toLowerCase().includes('banned') && (
+                <button
+                  type="button"
+                  onClick={() => setShowAppealModal(true)}
+                  className="self-start px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 text-[11px] font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Appeal Ban / Message Administrator
+                </button>
+              )}
             </div>
           )}
 
@@ -731,6 +745,12 @@ export function LandingAuthPage({ onSignedUp }) {
       <footer className="pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2 px-4 text-center text-[11px] text-slate-500">
         StudyHub Sanctuary · Focused co-study rooms, live accountability, and verified community moderation.
       </footer>
+
+      <AppealModal
+        isOpen={showAppealModal}
+        onClose={() => setShowAppealModal(false)}
+        userEmail={email}
+      />
     </div>
   );
 }

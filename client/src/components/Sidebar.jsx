@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Heart,
   Users,
+  MessageSquare,
   Timer,
   FileText,
   CheckSquare,
@@ -92,15 +93,20 @@ export function Sidebar({ currentView, onViewChange, onOpenAuthModal, onOpenProf
 
   const currentStatusMeta = getActivityMeta(user?.status_mode);
 
-  const socialUnread = notifications.filter(
-    (n) => !n.is_read && ['friend_request', 'friend_accepted', 'dm'].includes(n.type)
+  const dmUnread = notifications.filter(
+    (n) => !n.is_read && n.type === 'dm'
+  ).length;
+
+  const friendUnread = notifications.filter(
+    (n) => !n.is_read && ['friend_request', 'friend_accepted'].includes(n.type)
   ).length;
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { type: 'section', label: 'CHILL' },
     { id: 'favourites', label: 'Favourite Rooms', icon: Heart },
-    { id: 'friends', label: 'Friends & DMs', icon: Users, badge: socialUnread },
+    { id: 'dms', label: 'Direct Messages', icon: MessageSquare, badge: dmUnread },
+    { id: 'friends', label: 'Friends', icon: Users, badge: friendUnread },
     { type: 'section', label: 'STUDY' },
     { id: 'pomodoro', label: 'Pomodoro', icon: Timer },
     { id: 'notes', label: 'Notes', icon: FileText },

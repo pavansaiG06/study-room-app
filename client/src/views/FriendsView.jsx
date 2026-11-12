@@ -20,7 +20,7 @@ import { UserAvatar } from '../components/UserAvatar';
 import { UserPopoutCard } from '../components/UserPopoutCard';
 import { getActivityMeta } from '../utils/themes';
 
-export function FriendsView({ onJoinRoom, onRequestUpgrade }) {
+export function FriendsView({ onJoinRoom, onNavigate, onRequestUpgrade }) {
   const { user, token } = useAuth();
   const { socket } = useSocket();
   const { addToast } = useToast();
@@ -336,7 +336,13 @@ export function FriendsView({ onJoinRoom, onRequestUpgrade }) {
                     )}
 
                     <button
-                      onClick={() => setActiveDmFriend(f)}
+                      onClick={() => {
+                        if (onNavigate) {
+                          onNavigate('dms', { friendId: f.id });
+                        } else {
+                          setActiveDmFriend(f);
+                        }
+                      }}
                       title="Direct Message"
                       className={`p-2 rounded-xl transition-colors ${
                         activeDmFriend?.id === f.id

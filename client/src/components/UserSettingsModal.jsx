@@ -19,7 +19,8 @@ import {
   Mail,
   Image as ImageIcon,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  Pipette
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useMediaSettings } from '../context/MediaSettingsContext';
@@ -685,7 +686,11 @@ export function UserSettingsModal({ isOpen, onClose, onOpenBgSettings }) {
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[11px] text-slate-400">Preset or custom hex</span>
+                          <span className="font-mono text-[10px] text-slate-400 uppercase">{bannerColor}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
                           {BANNER_COLORS.map((c) => (
                             <button
                               key={c}
@@ -696,10 +701,37 @@ export function UserSettingsModal({ isOpen, onClose, onOpenBgSettings }) {
                               }}
                               style={{ backgroundColor: c }}
                               className={`w-7 h-7 rounded-lg border ${
-                                bannerColor === c && !bannerUrl ? 'border-white scale-110' : 'border-white/15 opacity-75'
+                                bannerColor.toLowerCase() === c.toLowerCase() && !bannerUrl ? 'border-white scale-110 shadow-md' : 'border-white/15 opacity-75'
                               }`}
                             />
                           ))}
+                          <label
+                            title="Pick custom banner color"
+                            className="relative w-7 h-7 rounded-lg border-2 border-dashed border-white/40 hover:border-white flex items-center justify-center cursor-pointer transition-colors overflow-hidden group shadow-sm"
+                            style={{ backgroundColor: bannerColor }}
+                          >
+                            <Pipette className="w-3.5 h-3.5 text-white drop-shadow group-hover:scale-110 transition-transform" />
+                            <input
+                              type="color"
+                              value={bannerColor.startsWith('#') ? bannerColor : '#1e1b4b'}
+                              onChange={(e) => {
+                                setBannerColor(e.target.value);
+                                setBannerUrl(null);
+                              }}
+                              className="opacity-0 absolute inset-0 cursor-pointer w-full h-full"
+                            />
+                          </label>
+                          <input
+                            type="text"
+                            value={bannerColor}
+                            onChange={(e) => {
+                              setBannerColor(e.target.value);
+                              setBannerUrl(null);
+                            }}
+                            placeholder="#hex"
+                            className="w-20 glass-input px-2 py-1 rounded-lg text-xs font-mono uppercase text-center"
+                            maxLength={7}
+                          />
                         </div>
                       </div>
 
@@ -847,12 +879,15 @@ export function UserSettingsModal({ isOpen, onClose, onOpenBgSettings }) {
                     </>
                   )}
 
-                  {/* Fallback color */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                      Avatar Color
-                    </label>
-                    <div className="flex gap-2">
+                  {/* Avatar Color with Custom Color Picker */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                        Avatar Color
+                      </label>
+                      <span className="font-mono text-[10px] text-slate-400 uppercase">{avatarColor}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
                       {AVATAR_COLORS.map((c) => (
                         <button
                           key={c}
@@ -860,10 +895,32 @@ export function UserSettingsModal({ isOpen, onClose, onOpenBgSettings }) {
                           onClick={() => setAvatarColor(c)}
                           style={{ backgroundColor: c }}
                           className={`w-7 h-7 rounded-full transition-transform ${
-                            avatarColor === c ? 'scale-125 ring-2 ring-white shadow-md' : 'opacity-70 hover:opacity-100'
+                            avatarColor.toLowerCase() === c.toLowerCase() ? 'scale-125 ring-2 ring-white shadow-md' : 'opacity-70 hover:opacity-100'
                           }`}
                         />
                       ))}
+                      {/* Native Custom Color Picker */}
+                      <label
+                        title="Pick custom avatar color"
+                        className="relative w-7 h-7 rounded-full border-2 border-dashed border-white/40 hover:border-white flex items-center justify-center cursor-pointer transition-colors overflow-hidden group shadow-sm"
+                        style={{ backgroundColor: avatarColor }}
+                      >
+                        <Pipette className="w-3.5 h-3.5 text-white drop-shadow group-hover:scale-110 transition-transform" />
+                        <input
+                          type="color"
+                          value={avatarColor.startsWith('#') ? avatarColor : '#8b5cf6'}
+                          onChange={(e) => setAvatarColor(e.target.value)}
+                          className="opacity-0 absolute inset-0 cursor-pointer w-full h-full"
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        value={avatarColor}
+                        onChange={(e) => setAvatarColor(e.target.value)}
+                        placeholder="#hex"
+                        className="w-20 glass-input px-2 py-1 rounded-lg text-xs font-mono uppercase text-center"
+                        maxLength={7}
+                      />
                     </div>
                   </div>
 

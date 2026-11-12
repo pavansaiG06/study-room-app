@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Check, ArrowRight, AtSign } from 'lucide-react';
+import { Sparkles, Check, ArrowRight, AtSign, Pipette } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './Toast';
 import { UserAvatar } from './UserAvatar';
@@ -178,7 +178,7 @@ export function ProfileOnboardingModal({ isOpen, onClose }) {
                   <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
                 </label>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {BANNER_COLORS.map((c) => (
                   <button
                     key={c}
@@ -189,10 +189,37 @@ export function ProfileOnboardingModal({ isOpen, onClose }) {
                     }}
                     style={{ backgroundColor: c }}
                     className={`w-7 h-7 rounded-lg border ${
-                      bannerColor === c && !bannerUrl ? 'border-white scale-110' : 'border-white/15 opacity-75'
+                      bannerColor.toLowerCase() === c.toLowerCase() && !bannerUrl ? 'border-white scale-110 shadow-md' : 'border-white/15 opacity-75'
                     }`}
                   />
                 ))}
+                <label
+                  title="Pick custom banner color"
+                  className="relative w-7 h-7 rounded-lg border-2 border-dashed border-white/40 hover:border-white flex items-center justify-center cursor-pointer transition-colors overflow-hidden group shadow-sm"
+                  style={{ backgroundColor: bannerColor }}
+                >
+                  <Pipette className="w-3.5 h-3.5 text-white drop-shadow group-hover:scale-110 transition-transform" />
+                  <input
+                    type="color"
+                    value={bannerColor.startsWith('#') ? bannerColor : '#1e1b4b'}
+                    onChange={(e) => {
+                      setBannerColor(e.target.value);
+                      setBannerUrl(null);
+                    }}
+                    className="opacity-0 absolute inset-0 cursor-pointer w-full h-full"
+                  />
+                </label>
+                <input
+                  type="text"
+                  value={bannerColor}
+                  onChange={(e) => {
+                    setBannerColor(e.target.value);
+                    setBannerUrl(null);
+                  }}
+                  placeholder="#hex"
+                  className="w-20 glass-input px-2 py-1 rounded-lg text-xs font-mono uppercase text-center"
+                  maxLength={7}
+                />
               </div>
             </div>
 

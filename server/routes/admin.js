@@ -558,4 +558,80 @@ router.delete('/announcements/:id', async (req, res) => {
   }
 });
 
+// List User Appeals (Ban appeals, Warning pleas, Admin inquiries)
+router.get('/appeals', async (req, res) => {
+  try {
+    const appeals = await dbAsync.all(
+      `SELECT a.id, a.user_id, a.email, a.name, a.appeal_type, a.message, a.status,
+              a.admin_response, a.resolved_by, a.created_at, a.resolved_at,
+              u.is_banned, u.ban_reason, u.warning_count, u.avatar_color, u.avatar_url
+       FROM user_appeals a
+       LEFT JOIN users u ON u.id = a.user_id OR (a.user_id IS NULL AND u.email = a.email)
+       ORDER BY CASE WHEN a.status = 'pending' THEN 0 ELSE 1 END, a.created_at DESC
+       LIMIT 100`
+    );
+    res.json({ appeals });
+  } catch (err) {
+    console.error('List appeals error:', err);
+    res.status(500).json({ error: 'Failed to load appeals' });
+  }
+});
+
+// Resolve Appeal (Unban user, dismiss warning, or send response)
+router.post('/appeals/:id/resolve', async (req, res) => {
+  try {
+    const appealId = req.params.id;
+    const { action, responseText } = req.body;
+    const cleanResponse = String(responseText || '').trim();
+
+    const appeal = await dbAsync.get('SELECT * FROM user_appeals WHERE id = ?', [appealId]);
+    if (!appeal) return res.status(404).json({ error: 'Appeal not found' });
+
+    const now = Date.now();
+    let newStatus = 'resolved';
+
+    if (action === 'unban') {
+      newStatus = 'approved';
+      if (appeal.user_id) {
+        await dbAsync.run("UPDATE users SET is_banned = 0, ban_reason = '', banned_at = NULL, banned_by = NULL WHERE id = ?", [appeal.user_id]);
+      } else if (appeal.email) {
+        await dbAsync.run("UPDATE users SET is_banned = 0, ban_reason = '', banned_at = NULL, banned_by = NULL WHERE email = ?", [appeal.email]);
+      }
+      await writeAuditLog(req.user, 'unban_user', 'user', appeal.user_id || appeal.email, `Approved ban appeal for ${appeal.name} (${appeal.email})`);
+    } else if (action === 'dismiss_warning') {
+      newStatus = 'approved';
+      if (appeal.user_id) {
+        await dbAsync.run('UPDATE users SET warning_count = MAX(0, COALESCE(warning_count, 1) - 1) WHERE id = ?', [appeal.user_id]);
+      }
+      await writeAuditLog(req.user, 'dismiss_warning', 'user', appeal.user_id, `Granted warning plea for ${appeal.name}`);
+    } else if (action === 'reject') {
+      newStatus = 'rejected';
+      await writeAuditLog(req.user, 'reject_appeal', 'user', appeal.user_id || appeal.email, `Rejected appeal: ${cleanResponse}`);
+    }
+
+    await dbAsync.run(
+      `UPDATE user_appeals
+       SET status = ?, admin_response = ?, resolved_by = ?, resolved_at = ?
+       WHERE id = ?`,
+      [newStatus, cleanResponse, req.user.name, now, appealId]
+    );
+
+    // Send in-app notification if user is online / registered
+    if (appeal.user_id) {
+      const io = req.app.get('io');
+      await pushNotification(io, appeal.user_id, {
+        type: 'appeal_response',
+        title: `StudyHub Administration: Appeal ${newStatus === 'approved' ? 'Approved' : 'Updated'}`,
+        body: cleanResponse || (newStatus === 'approved' ? 'Your appeal has been approved by the admin team.' : 'Your appeal has been reviewed.'),
+        data: { appealId, status: newStatus }
+      });
+    }
+
+    res.json({ success: true, status: newStatus });
+  } catch (err) {
+    console.error('Resolve appeal error:', err);
+    res.status(500).json({ error: 'Failed to resolve appeal' });
+  }
+});
+
 module.exports = router;

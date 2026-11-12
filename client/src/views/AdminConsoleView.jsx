@@ -15,7 +15,11 @@ import {
   UserCheck,
   Clock,
   VolumeX,
-  Power
+  Power,
+  MessageSquare,
+  CheckCircle2,
+  Send,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
@@ -31,6 +35,9 @@ export function AdminConsoleView({ initialTab = 'overview' }) {
   const [reportsList, setReportsList] = useState([]);
   const [roomsList, setRoomsList] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [appealsList, setAppealsList] = useState([]);
+  const [replyTarget, setReplyTarget] = useState(null);
+  const [replyText, setReplyText] = useState('');
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -63,18 +70,20 @@ export function AdminConsoleView({ initialTab = 'overview' }) {
     setLoading(true);
     const headers = { Authorization: `Bearer ${token}` };
     try {
-      const [ovRes, usersRes, repRes, roomsRes, logsRes] = await Promise.all([
+      const [ovRes, usersRes, repRes, roomsRes, logsRes, appealsRes] = await Promise.all([
         fetch('/api/admin/overview', { headers }),
         fetch(`/api/admin/users?q=${encodeURIComponent(userSearch)}&filter=${userFilter}`, { headers }),
         fetch('/api/admin/reports', { headers }),
         fetch('/api/admin/rooms', { headers }),
-        fetch('/api/admin/audit-logs', { headers })
+        fetch('/api/admin/audit-logs', { headers }),
+        fetch('/api/admin/appeals', { headers })
       ]);
       if (ovRes.ok) setOverview(await ovRes.json());
       if (usersRes.ok) setUsersList((await usersRes.json()).users || []);
       if (repRes.ok) setReportsList((await repRes.json()).reports || []);
       if (roomsRes.ok) setRoomsList((await roomsRes.json()).rooms || []);
       if (logsRes.ok) setAuditLogs((await logsRes.json()).logs || []);
+      if (appealsRes.ok) setAppealsList((await appealsRes.json()).appeals || []);
     } catch {
       addToast('Failed to load admin console data', 'error');
     } finally {
@@ -272,6 +281,34 @@ export function AdminConsoleView({ initialTab = 'overview' }) {
     URL.revokeObjectURL(url);
   };
 
+  const handleResolveAppeal = async (appealId, action, responseText = '') => {
+    try {
+      const res = await fetch(`/api/admin/appeals/${appealId}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action, responseText })
+      });
+      if (res.ok) {
+        addToast(
+          action === 'unban'
+            ? 'Appeal approved and user unbanned!'
+            : action === 'dismiss_warning'
+            ? 'Warning strike removed from user account'
+            : 'Appeal updated successfully',
+          'success'
+        );
+        setReplyTarget(null);
+        setReplyText('');
+        loadAdminData();
+      } else {
+        const data = await res.json();
+        addToast(data.error || 'Failed to update appeal', 'error');
+      }
+    } catch {
+      addToast('Network error resolving appeal', 'error');
+    }
+  };
+
   const stats = overview?.stats || {};
 
   return (
@@ -309,6 +346,7 @@ export function AdminConsoleView({ initialTab = 'overview' }) {
           ['overview', 'Overview & Broadcasts', Shield],
           ['users', `User Management (${usersList.length})`, Users],
           ['reports', `Global Reports (${stats.openReportsCount || 0} open)`, Flag],
+          ['appeals', `Appeals & Inquiries (${appealsList.filter((a) => a.status === 'pending').length} pending)`, MessageSquare],
           ['rooms', `Rooms Monitor (${roomsList.length})`, Power],
           ['audit', 'Audit Ledger', Activity]
         ].map(([id, label, Icon]) => (
@@ -772,6 +810,145 @@ export function AdminConsoleView({ initialTab = 'overview' }) {
         </div>
       )}
 
+      {/* TAB 6: APPEALS & INQUIRIES */}
+      {activeTab === 'appeals' && (
+        <div className="space-y-4 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-brand-purple" />
+                User Appeals &amp; Moderation Inquiries ({appealsList.length})
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Review messages and explanations submitted by banned or warned users pleading their case directly to you.
+              </p>
+            </div>
+            <button
+              onClick={loadAdminData}
+              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {appealsList.length === 0 ? (
+              <div className="glass-panel p-10 rounded-2xl border border-white/10 text-center text-slate-500 text-xs">
+                No user appeals or moderation inquiries filed.
+              </div>
+            ) : (
+              appealsList.map((appeal) => (
+                <div
+                  key={appeal.id}
+                  className={`glass-panel p-4 sm:p-5 rounded-2xl border transition-all ${
+                    appeal.status === 'pending'
+                      ? 'border-amber-500/40 bg-amber-500/5'
+                      : appeal.status === 'approved'
+                      ? 'border-emerald-500/30 bg-emerald-500/5'
+                      : 'border-white/10 bg-dark-950/40'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <UserAvatar
+                        user={{ name: appeal.name || 'Anonymous', avatar_color: '#8b5cf6' }}
+                        size="md"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-white">{appeal.name}</span>
+                          <span className="text-xs text-slate-400">({appeal.email || 'guest'})</span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              appeal.appeal_type === 'ban'
+                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            }`}
+                          >
+                            {appeal.appeal_type === 'ban' ? 'Ban Appeal' : 'Warning Inquiry'}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              appeal.status === 'pending'
+                                ? 'bg-amber-500/20 text-amber-300'
+                                : appeal.status === 'approved'
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-slate-500/20 text-slate-300'
+                            }`}
+                          >
+                            {appeal.status}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                          <Clock className="w-3 h-3" />
+                          Submitted {new Date(appeal.created_at).toLocaleString()}
+                          {appeal.ban_reason && (
+                            <span className="text-rose-400 font-medium">
+                              • Reason for restriction: "{appeal.ban_reason}"
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {appeal.status === 'pending' && (
+                      <div className="flex items-center gap-2">
+                        {appeal.appeal_type === 'ban' && (
+                          <button
+                            onClick={() => handleResolveAppeal(appeal.id, 'unban', 'Appeal accepted by admin')}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center gap-1"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Approve &amp; Unban
+                          </button>
+                        )}
+                        {appeal.appeal_type === 'warning' && (
+                          <button
+                            onClick={() => handleResolveAppeal(appeal.id, 'dismiss_warning', 'Warning dismissed')}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center gap-1"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Dismiss Warning Strike
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setReplyTarget(appeal);
+                            setReplyText('');
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-brand-purple/20 hover:bg-brand-purple/30 border border-brand-purple/40 text-purple-200 text-xs font-semibold flex items-center gap-1"
+                        >
+                          <Send className="w-3.5 h-3.5" /> Reply to Appeal
+                        </button>
+                        <button
+                          onClick={() => handleResolveAppeal(appeal.id, 'reject', 'Appeal rejected')}
+                          className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-300 text-xs font-semibold"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 p-3 rounded-xl bg-dark-900/60 border border-white/5 text-xs text-slate-200 whitespace-pre-wrap leading-relaxed">
+                    <strong className="text-slate-400 block text-[10px] uppercase font-mono mb-1">User Statement / Plea:</strong>
+                    {appeal.message}
+                  </div>
+
+                  {appeal.admin_response && (
+                    <div className="mt-2 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-200">
+                      <div className="flex items-center justify-between text-[10px] text-purple-300 font-mono mb-1">
+                        <span>Admin Decision by {appeal.resolved_by || 'Super-Admin'}</span>
+                        {appeal.resolved_at && <span>{new Date(appeal.resolved_at).toLocaleString()}</span>}
+                      </div>
+                      <p className="whitespace-pre-wrap">{appeal.admin_response}</p>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {/* MODAL: ISSUE WARNING */}
       {warnTarget && (
         <div className="fixed inset-0 z-[75] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm modal-backdrop-enter">
@@ -899,6 +1076,49 @@ export function AdminConsoleView({ initialTab = 'overview' }) {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* MODAL: REPLY TO APPEAL */}
+      {replyTarget && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm modal-backdrop-enter">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleResolveAppeal(replyTarget.id, 'reply', replyText);
+            }}
+            className="glass-panel modal-panel-enter w-full max-w-md p-5 sm:p-6 rounded-2xl border border-brand-purple/40 space-y-4"
+          >
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-brand-purple" /> Respond to {replyTarget.name}'s Appeal
+            </h3>
+            <p className="text-xs text-slate-400">
+              Your response will be recorded on their appeal and sent via in-app notification.
+            </p>
+            <textarea
+              required
+              rows={4}
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Write your explanation or instructions to the user..."
+              className="w-full glass-input px-3 py-2 rounded-xl text-xs resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setReplyTarget(null)}
+                className="btn-tactile px-4 py-2 rounded-xl text-xs text-slate-400"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn-tactile px-4 py-2 rounded-xl bg-brand-purple hover:bg-purple-600 text-white font-bold text-xs"
+              >
+                Send Response
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

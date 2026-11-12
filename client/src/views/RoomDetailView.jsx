@@ -44,8 +44,12 @@ import {
   Target,
   Plus,
   Trash2,
-  Music2
+  Music2,
+  ChevronDown,
+  ChevronUp,
+  Layers
 } from 'lucide-react';
+import { EmojiPicker } from '../components/EmojiPicker';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useMediaSettings } from '../context/MediaSettingsContext';
@@ -119,6 +123,9 @@ export function RoomDetailView({
   const [showGroupCall, setShowGroupCall] = useState(true);
   const [showYouTube, setShowYouTube] = useState(false);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [whiteboardMode, setWhiteboardMode] = useState('stage'); // 'stage' | 'split' | 'fullscreen'
+  const [headerMinimized, setHeaderMinimized] = useState(false);
+  const [showChatEmojiPicker, setShowChatEmojiPicker] = useState(false);
   const [showChatView, setShowChatView] = useState(true);
   const [showFocusBar, setShowFocusBar] = useState(true);
 
@@ -995,21 +1002,85 @@ export function RoomDetailView({
 
           {/* Collaborative Live Whiteboard (when toggled on) */}
           {showWhiteboard && (
-            <div className={showGroupCall ? 'h-64 sm:h-72 flex-shrink-0' : 'flex-1 min-h-[280px]'}>
-              <WhiteboardCanvas
-                socket={socket}
-                roomId={roomId}
-                strokes={boardStrokes}
-                setStrokes={setBoardStrokes}
-                readOnly={isGuestUser}
-              />
+            <div
+              className={`flex flex-col transition-all duration-300 ${
+                !showGroupCall || whiteboardMode === 'fullscreen'
+                  ? 'flex-1 min-h-[360px] h-full'
+                  : whiteboardMode === 'stage'
+                  ? 'flex-1 min-h-[340px] h-full'
+                  : 'h-64 sm:h-72 flex-shrink-0'
+              }`}
+            >
+              {/* Whiteboard Sizing & Mode Switcher Bar */}
+              {showGroupCall && (
+                <div className="flex items-center justify-between px-3 py-1.5 bg-dark-900/90 border border-white/10 rounded-t-2xl text-[11px] text-slate-300">
+                  <div className="flex items-center gap-1.5 font-semibold text-cyan-300">
+                    <PenTool className="w-3.5 h-3.5" />
+                    <span>Whiteboard Canvas</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setWhiteboardMode('stage')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all ${
+                        whiteboardMode === 'stage'
+                          ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-sm'
+                          : 'hover:bg-white/10 text-slate-400'
+                      }`}
+                      title="Stage Mode: Whiteboard maximized with compact participant strip"
+                    >
+                      Stage Mode
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWhiteboardMode('split')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all ${
+                        whiteboardMode === 'split'
+                          ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-sm'
+                          : 'hover:bg-white/10 text-slate-400'
+                      }`}
+                      title="Split Mode: 50/50 balance between Whiteboard and Video Grid"
+                    >
+                      Split 50/50
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWhiteboardMode('fullscreen')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all ${
+                        whiteboardMode === 'fullscreen'
+                          ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-sm'
+                          : 'hover:bg-white/10 text-slate-400'
+                      }`}
+                      title="Fullscreen Whiteboard: Hide video tiles"
+                    >
+                      Maximize
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="flex-1 min-h-0">
+                <WhiteboardCanvas
+                  socket={socket}
+                  roomId={roomId}
+                  strokes={boardStrokes}
+                  setStrokes={setBoardStrokes}
+                  readOnly={isGuestUser}
+                />
+              </div>
             </div>
           )}
 
           {/* Maximize Camera Stage */}
-          {showGroupCall && (
-            <div className="flex-1 min-h-[240px]">
+          {showGroupCall && (!showWhiteboard || whiteboardMode !== 'fullscreen') && (
+            <div
+              className={`transition-all duration-300 ${
+                showWhiteboard && whiteboardMode === 'stage'
+                  ? 'h-28 sm:h-32 flex-shrink-0'
+                  : 'flex-1 min-h-[240px]'
+              }`}
+            >
               <VideoGrid
+                compactFilmstrip={showWhiteboard && whiteboardMode === 'stage'}
                 localStream={localStream}
                 remoteStreams={remoteStreams}
                 participants={participants}
@@ -1365,48 +1436,92 @@ export function RoomDetailView({
           }
         >
           {/* STRIP 1 (Small Right-Side Room Header Strip) */}
-          <div
-            style={roomThemeVisuals.headerStyle}
-            className={`relative z-30 px-2.5 py-2 rounded-2xl border backdrop-blur-xl transition-colors duration-500 ${activeRoomTheme.headerClass}`}
-          >
-            {roomData?.cover_url && (
-              <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none select-none">
-                <img
-                  src={roomData.cover_url}
-                  alt=""
-                  className="w-full h-full object-cover opacity-20"
-                />
+          {headerMinimized ? (
+            <div
+              style={roomThemeVisuals.headerStyle}
+              className={`relative z-30 px-3 py-1.5 rounded-2xl border backdrop-blur-xl transition-all duration-300 flex items-center justify-between gap-2 shadow-lg ${activeRoomTheme.headerClass}`}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <button
+                  onClick={onToggleSidebar}
+                  title={sidebarHidden ? 'Expand Left Sidebar' : 'Hide Left Sidebar'}
+                  className="p-1 rounded-lg bg-dark-900/70 text-slate-300 hover:text-white border border-white/10"
+                >
+                  {sidebarHidden ? <PanelLeftOpen className="w-3 h-3 text-brand-purple" /> : <PanelLeftClose className="w-3 h-3 text-brand-purple" />}
+                </button>
+                <h2 className="text-xs font-bold text-white truncate max-w-[120px] sm:max-w-[150px]">{roomData?.name || 'Study Room'}</h2>
+                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded border uppercase flex-shrink-0 ${activeRoomTheme.badgeClass}`}>
+                  {roomData?.vibe || 'Study'}
+                </span>
               </div>
-            )}
-            <div className="relative z-10 space-y-1.5">
-              {/* Row 1: Title + Vibe + Leave */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <button
-                    onClick={onToggleSidebar}
-                    title={sidebarHidden ? 'Expand Left Sidebar' : 'Hide Left Sidebar'}
-                    className="p-1.5 rounded-lg bg-dark-900/70 text-slate-300 hover:text-white border border-white/10 flex-shrink-0"
-                  >
-                    {sidebarHidden ? <PanelLeftOpen className="w-3.5 h-3.5 text-brand-purple" /> : <PanelLeftClose className="w-3.5 h-3.5 text-brand-purple" />}
-                  </button>
-                  <h2 className="text-sm font-bold text-white truncate">{roomData?.name || 'Study Room'}</h2>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase flex-shrink-0 ${activeRoomTheme.badgeClass}`}>
-                    {roomData?.vibe || 'Study'}
-                  </span>
-                  {roomData?.is_locked ? (
-                    <Lock className="w-3 h-3 text-amber-400 flex-shrink-0" title="Locked" />
-                  ) : (
-                    <Globe className="w-3 h-3 text-slate-400 flex-shrink-0" title="Open" />
-                  )}
-                </div>
-
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onClick={() => setHeaderMinimized(false)}
+                  title="Expand room header settings"
+                  className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-semibold flex items-center gap-1 transition-colors"
+                >
+                  <ChevronDown className="w-3 h-3 text-brand-purple" /> Expand
+                </button>
                 <button
                   onClick={onLeaveRoom}
-                  className="px-2.5 py-1 rounded-lg border border-rose-500/40 bg-rose-500/20 hover:bg-rose-500/35 text-rose-200 text-[10px] font-bold tracking-wider uppercase flex-shrink-0"
+                  className="px-2 py-0.5 rounded-lg border border-rose-500/40 bg-rose-500/20 text-rose-200 text-[9px] font-bold uppercase"
                 >
-                  LEAVE
+                  Leave
                 </button>
               </div>
+            </div>
+          ) : (
+            <div
+              style={roomThemeVisuals.headerStyle}
+              className={`relative z-30 px-2.5 py-2 rounded-2xl border backdrop-blur-xl transition-colors duration-500 ${activeRoomTheme.headerClass}`}
+            >
+              {roomData?.cover_url && (
+                <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none select-none">
+                  <img
+                    src={roomData.cover_url}
+                    alt=""
+                    className="w-full h-full object-cover opacity-20"
+                  />
+                </div>
+              )}
+              <div className="relative z-10 space-y-1.5">
+                {/* Row 1: Title + Vibe + Minimize + Leave */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <button
+                      onClick={onToggleSidebar}
+                      title={sidebarHidden ? 'Expand Left Sidebar' : 'Hide Left Sidebar'}
+                      className="p-1.5 rounded-lg bg-dark-900/70 text-slate-300 hover:text-white border border-white/10 flex-shrink-0"
+                    >
+                      {sidebarHidden ? <PanelLeftOpen className="w-3.5 h-3.5 text-brand-purple" /> : <PanelLeftClose className="w-3.5 h-3.5 text-brand-purple" />}
+                    </button>
+                    <h2 className="text-sm font-bold text-white truncate">{roomData?.name || 'Study Room'}</h2>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase flex-shrink-0 ${activeRoomTheme.badgeClass}`}>
+                      {roomData?.vibe || 'Study'}
+                    </span>
+                    {roomData?.is_locked ? (
+                      <Lock className="w-3 h-3 text-amber-400 flex-shrink-0" title="Locked" />
+                    ) : (
+                      <Globe className="w-3 h-3 text-slate-400 flex-shrink-0" title="Open" />
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => setHeaderMinimized(true)}
+                      title="Minimize top header"
+                      className="p-1.5 rounded-lg bg-dark-900/70 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={onLeaveRoom}
+                      className="px-2.5 py-1 rounded-lg border border-rose-500/40 bg-rose-500/20 hover:bg-rose-500/35 text-rose-200 text-[10px] font-bold tracking-wider uppercase"
+                    >
+                      LEAVE
+                    </button>
+                  </div>
+                </div>
 
               {/* Row 2: Compact Right-Aligned Actions */}
               <div className="flex items-center justify-between gap-1 flex-wrap">
@@ -1491,6 +1606,7 @@ export function RoomDetailView({
               </div>
             </div>
           </div>
+        )}
 
           {/* STRIP 2 (Small Right-Side Focus Timer Strip) */}
           {showFocusBar && (
@@ -1762,7 +1878,27 @@ export function RoomDetailView({
                   )}
 
                   {canUseChat ? (
-                    <form onSubmit={handleSendMessage} className="p-2.5 border-t border-white/10 flex gap-1.5">
+                    <form onSubmit={handleSendMessage} className="p-2.5 border-t border-white/10 flex gap-1.5 relative">
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowChatEmojiPicker((p) => !p)}
+                          className="p-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 hover:text-white transition-colors"
+                          title="Insert emoji"
+                        >
+                          <Smile className="w-3.5 h-3.5" />
+                        </button>
+                        {showChatEmojiPicker && (
+                          <EmojiPicker
+                            onSelectEmoji={(em) => {
+                              setChatInput((prev) => prev + em);
+                              setShowChatEmojiPicker(false);
+                            }}
+                            onClose={() => setShowChatEmojiPicker(false)}
+                            align="top"
+                          />
+                        )}
+                      </div>
                       <input
                         type="text"
                         placeholder="Message the room..."
@@ -1773,7 +1909,7 @@ export function RoomDetailView({
                       />
                       <button
                         type="submit"
-                        className="p-2 px-3 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white shadow-md"
+                        className="p-2 px-3 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white shadow-md flex-shrink-0"
                       >
                         <Send className="w-3.5 h-3.5" />
                       </button>
@@ -2466,9 +2602,10 @@ export function RoomDetailView({
             onToggleAdmin: handleToggleAdmin
           }}
           onClose={() => setPopoutTarget(null)}
-          onOpenDM={() => {
+          onOpenDM={(prof) => {
+            const targetId = prof?.id || popoutTarget?.userId;
             setPopoutTarget(null);
-            onNavigate?.('friends');
+            onNavigate?.('dms', { friendId: targetId });
           }}
         />
       )}

@@ -703,4 +703,84 @@ router.post('/listening', authMiddleware, requireRegisteredUser, async (req, res
   }
 });
 
+// Submit Ban Appeal / Message Admin (Public - for banned users who cannot log in)
+router.post('/appeal', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    const message = (req.body.message || '').trim().slice(0, 2000);
+    const appealType = ['ban_appeal', 'warning_appeal', 'general_inquiry'].includes(req.body.appealType)
+      ? req.body.appealType
+      : 'ban_appeal';
+
+    if (!email || !message) {
+      return res.status(400).json({ error: 'Please provide both your registered email address and appeal message' });
+    }
+
+    const user = await dbAsync.get('SELECT id, name, email, is_banned, ban_reason FROM users WHERE email = ?', [email]);
+    const id = crypto.randomUUID();
+    const now = Date.now();
+
+    await dbAsync.run(
+      `INSERT INTO user_appeals (id, user_id, email, name, appeal_type, message, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
+      [id, user?.id || null, email, user?.name || email.split('@')[0], appealType, message, now]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Your appeal has been securely submitted to the StudyHub Administrator. We will review your plea and notify you.'
+    });
+  } catch (err) {
+    console.error('Submit appeal error:', err);
+    res.status(500).json({ error: 'Failed to submit appeal. Please try again later.' });
+  }
+});
+
+// Submit Appeal / Message Admin (Authenticated - for active or warned users)
+router.post('/appeal-authenticated', authMiddleware, async (req, res) => {
+  try {
+    const message = (req.body.message || '').trim().slice(0, 2000);
+    const appealType = ['warning_appeal', 'room_ban_appeal', 'general_inquiry'].includes(req.body.appealType)
+      ? req.body.appealType
+      : 'warning_appeal';
+
+    if (!message) {
+      return res.status(400).json({ error: 'Please provide an appeal message' });
+    }
+
+    const id = crypto.randomUUID();
+    const now = Date.now();
+
+    await dbAsync.run(
+      `INSERT INTO user_appeals (id, user_id, email, name, appeal_type, message, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
+      [id, req.user.id, req.user.email || 'guest', req.user.name, appealType, message, now]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Your message has been delivered to the Administration Team.'
+    });
+  } catch (err) {
+    console.error('Submit authenticated appeal error:', err);
+    res.status(500).json({ error: 'Failed to submit appeal' });
+  }
+});
+
+// View My Appeals Status
+router.get('/my-appeals', authMiddleware, async (req, res) => {
+  try {
+    const appeals = await dbAsync.all(
+      `SELECT id, appeal_type, message, status, admin_response, created_at, resolved_at
+       FROM user_appeals
+       WHERE user_id = ? OR email = ?
+       ORDER BY created_at DESC LIMIT 20`,
+      [req.user.id, req.user.email || '']
+    );
+    res.json({ appeals });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load appeals' });
+  }
+});
+
 module.exports = router;

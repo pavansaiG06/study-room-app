@@ -195,6 +195,19 @@ const TABLE_DEFINITIONS = [
     is_active INTEGER DEFAULT 1,
     created_by TEXT,
     created_at INTEGER
+  )`,
+  `CREATE TABLE IF NOT EXISTS user_appeals (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    email TEXT,
+    name TEXT,
+    appeal_type TEXT DEFAULT 'ban_appeal',
+    message TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    admin_response TEXT,
+    resolved_by TEXT,
+    created_at INTEGER,
+    resolved_at INTEGER
   )`
 ];
 

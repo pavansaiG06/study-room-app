@@ -3,6 +3,7 @@ import { X, Sparkles, Mail, Lock, User, ArrowRight, Camera, Trash2 } from 'lucid
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './Toast';
 import { UserAvatar } from './UserAvatar';
+import { AppealModal } from './AppealModal';
 import { compressAvatarImage } from '../utils/image';
 
 const AVATAR_COLORS = ['#8b5cf6', '#3b82f6', '#ec4899', '#22c55e', '#f59e0b', '#06b6d4', '#ef4444'];
@@ -19,6 +20,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login', upgradeMode 
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showAppealModal, setShowAppealModal] = useState(false);
 
   if (!isOpen) return null;
 
@@ -127,8 +129,17 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login', upgradeMode 
         )}
 
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
-            {error}
+          <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium flex flex-col gap-2">
+            <span>{error}</span>
+            {error.toLowerCase().includes('banned') && (
+              <button
+                type="button"
+                onClick={() => setShowAppealModal(true)}
+                className="self-start px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[11px] font-bold"
+              >
+                Appeal Ban / Message Admin
+              </button>
+            )}
           </div>
         )}
 
@@ -285,6 +296,12 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login', upgradeMode 
           </button>
         </form>
       </div>
+
+      <AppealModal
+        isOpen={showAppealModal}
+        onClose={() => setShowAppealModal(false)}
+        userEmail={email}
+      />
     </div>
   );
 }

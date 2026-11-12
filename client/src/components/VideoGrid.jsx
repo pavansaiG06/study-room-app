@@ -51,6 +51,33 @@ function VideoTile({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const userVol = participant?.userId ? getParticipantVolume(participant.userId) : 100;
+  const [, setTrackVersion] = useState(0);
+
+  // Reactive listener on stream video tracks (unmute, mute, ended)
+  useEffect(() => {
+    if (!stream) return;
+    const forceUpdate = () => {
+      setTrackVersion((v) => v + 1);
+      if (videoRef.current) {
+        videoRef.current.play().catch(() => {});
+      }
+    };
+
+    const tracks = stream.getVideoTracks();
+    tracks.forEach((t) => {
+      t.addEventListener('unmute', forceUpdate);
+      t.addEventListener('mute', forceUpdate);
+      t.addEventListener('ended', forceUpdate);
+    });
+
+    return () => {
+      tracks.forEach((t) => {
+        t.removeEventListener('unmute', forceUpdate);
+        t.removeEventListener('mute', forceUpdate);
+        t.removeEventListener('ended', forceUpdate);
+      });
+    };
+  }, [stream]);
 
   // Bind stream and speaker output / volume
   useEffect(() => {
@@ -58,6 +85,7 @@ function VideoTile({
     if (!videoEl || !stream) return;
 
     videoEl.srcObject = stream;
+    videoEl.play().catch(() => {});
 
     if (!isLocal && selectedSpeakerId && typeof videoEl.setSinkId === 'function') {
       videoEl.setSinkId(selectedSpeakerId).catch(() => {});
@@ -125,8 +153,10 @@ function VideoTile({
   const hasLiveVideoTrack =
     !locallyHiddenVideo &&
     !locallyBlocked &&
+    (isLocal ? (participant?.camOn || participant?.screenSharing) : true) &&
     stream &&
-    stream.getVideoTracks().some((t) => t.enabled && t.readyState === 'live');
+    stream.getVideoTracks().length > 0 &&
+    (stream.getVideoTracks().some((t) => t.enabled && t.readyState === 'live') || participant?.camOn || participant?.screenSharing);
 
   const handleFullscreen = () => {
     setMenuOpen(false);
@@ -494,6 +524,7 @@ export function VideoGrid({
   layoutMode = 'auto', // 'auto' | 'tiled' | 'spotlight' | 'sidebar'
   pinnedGlobalSocketId = null,
   isHostOrAdmin = false,
+  compactFilmstrip = false,
   onPinForEveryone,
   onModerate,
   onReportUser,
@@ -532,15 +563,16 @@ export function VideoGrid({
     : null;
 
   const activeSpeakerTile = allTiles.find((t) => speakingUsers[t.participant.socketId]);
-  const focalTile = pinnedTile || screenSharer || (layoutMode === 'spotlight' || layoutMode === 'sidebar' ? (activeSpeakerTile || allTiles[0]) : null);
+  // Spotlight screen share by default when active so everyone sees screen share prominently
+  const focalTile = screenSharer || pinnedTile || (layoutMode === 'spotlight' || layoutMode === 'sidebar' ? (activeSpeakerTile || allTiles[0]) : null);
 
   // Spotlight or Sidebar layout when focal tile exists (and not explicitly 'tiled')
   const useSpotlightOrSidebar =
-    layoutMode !== 'tiled' &&
+    (layoutMode !== 'tiled' || !!screenSharer) &&
     allTiles.length > 1 &&
-    (layoutMode === 'spotlight' || layoutMode === 'sidebar' || !!focalTile);
+    (layoutMode === 'spotlight' || layoutMode === 'sidebar' || !!focalTile || !!screenSharer);
 
-  const layoutSignature = `${layoutMode}|${useSpotlightOrSidebar}|${focalTile?.participant?.socketId || ''}|${selfViewMode}|${allTiles
+  const layoutSignature = `${layoutMode}|${useSpotlightOrSidebar}|${focalTile?.participant?.socketId || ''}|${compactFilmstrip}|${selfViewMode}|${allTiles
     .map((t) => t.participant.socketId)
     .join(',')}`;
 
@@ -664,7 +696,15 @@ export function VideoGrid({
 
   return (
     <div className="relative w-full h-full">
-      {useSpotlightOrSidebar && focalTile ? (
+      {compactFilmstrip ? (
+        <div className="flex items-center gap-2 overflow-x-auto p-1.5 h-full no-scrollbar snap-x snap-mandatory">
+          {allTiles.map((item) => (
+            <div key={item.participant.socketId} className="w-36 sm:w-44 h-full aspect-video flex-shrink-0 snap-start">
+              {renderTile(item, true)}
+            </div>
+          ))}
+        </div>
+      ) : useSpotlightOrSidebar && focalTile ? (
         layoutMode === 'spotlight' ? (
           <div className="w-full h-full">{renderTile(focalTile)}</div>
         ) : (

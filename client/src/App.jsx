@@ -26,6 +26,7 @@ const PomodoroView = lazyView(() => import('./views/PomodoroView'), 'PomodoroVie
 const TasksView = lazyView(() => import('./views/TasksView'), 'TasksView');
 const NotesView = lazyView(() => import('./views/NotesView'), 'NotesView');
 const AlarmView = lazyView(() => import('./views/AlarmView'), 'AlarmView');
+const DirectMessagesView = lazyView(() => import('./views/DirectMessagesView'), 'DirectMessagesView');
 const FriendsView = lazyView(() => import('./views/FriendsView'), 'FriendsView');
 const FavouritesView = lazyView(() => import('./views/FavouritesView'), 'FavouritesView');
 const SafetyReportsView = lazyView(() => import('./views/SafetyReportsView'), 'SafetyReportsView');
@@ -38,6 +39,7 @@ export function App() {
   const { addToast } = useToast();
 
   const [currentView, setCurrentView] = useState('dashboard');
+  const [activeDmFriendId, setActiveDmFriendId] = useState(null);
   const [activeRoomId, setActiveRoomId] = useState(null);
   const [initialRoomMedia, setInitialRoomMedia] = useState({});
   const [preJoinRoom, setPreJoinRoom] = useState(null);
@@ -189,10 +191,13 @@ export function App() {
     }, mainRef);
   };
 
-  const navigateToView = (view) => {
+  const navigateToView = (view, meta = {}) => {
     runViewTransition(() => {
       if (currentView === 'room') {
         setActiveRoomId(null);
+      }
+      if (meta?.friendId) {
+        setActiveDmFriendId(meta.friendId);
       }
       setCurrentView(view);
       if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -355,9 +360,19 @@ export function App() {
               <FavouritesView onJoinRoom={requestJoinRoom} />
             )}
 
+            {currentView === 'dms' && (
+              <DirectMessagesView
+                initialFriendId={activeDmFriendId}
+                onJoinRoom={requestJoinRoom}
+                onNavigate={navigateToView}
+                onRequestUpgrade={() => setShowUpgradeModal(true)}
+              />
+            )}
+
             {currentView === 'friends' && (
               <FriendsView
                 onJoinRoom={requestJoinRoom}
+                onNavigate={navigateToView}
                 onRequestUpgrade={() => setShowUpgradeModal(true)}
               />
             )}
