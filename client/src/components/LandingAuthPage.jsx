@@ -249,6 +249,7 @@ export function LandingAuthPage({ onSignedUp }) {
       </header>
 
       {/* SECTION 1: HERO EDITORIAL LANDING */}
+      <main>
       <section className="relative pt-16 sm:pt-24 pb-20 px-4 sm:px-8 max-w-5xl mx-auto text-center space-y-8">
         <div
           className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full text-xs font-semibold border mx-auto"
@@ -259,7 +260,7 @@ export function LandingAuthPage({ onSignedUp }) {
           }}
         >
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          Distraction-Free Co-Study &amp; Live Accountability Platform
+          StudyHub · Distraction-Free Study Room App &amp; Live Accountability
         </div>
 
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.06] max-w-4xl mx-auto">
@@ -275,9 +276,9 @@ export function LandingAuthPage({ onSignedUp }) {
         </h1>
 
         <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          Step out of noisy chat servers and sterile meeting links. Enter custom-themed study rooms
-          built around live video co-working, synchronized whiteboards, YouTube study music detection,
-          and daily focus streaks.
+          Your calm online study hub &amp; virtual study room app — free from noisy chat servers and sterile meeting links.
+          Enter custom-themed study rooms built around live video co-working, synchronized whiteboards,
+          YouTube study music detection, and daily focus streaks.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3.5 pt-2">
@@ -725,6 +726,7 @@ export function LandingAuthPage({ onSignedUp }) {
           )}
         </div>
       </section>
+      </main>
 
       <footer className="pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-2 px-4 text-center text-[11px] text-slate-500">
         StudyHub Sanctuary · Focused co-study rooms, live accountability, and verified community moderation.

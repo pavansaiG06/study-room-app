@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="shGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#shGrad)" />
+  <path d="M32 14L48 23V41L32 50L16 41V23L32 14Z" stroke="white" stroke-width="3.5" stroke-linejoin="round" />
+  <path d="M32 32L48 23M32 32V50M32 32L16 23" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

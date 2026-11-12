@@ -115,13 +115,75 @@ app.get('/api/webrtc/ice-servers', (req, res) => {
   res.json({ iceServers });
 });
 
+// SEO: Dynamic robots.txt, sitemap.xml, and Search Console verification helpers
+const DEFAULT_CANONICAL_URL = 'https://study-room-app-fkd9.onrender.com';
+
+function resolveSiteUrl(req) {
+  const configured = (process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/+$/, '');
+  if (/^https?:\/\//i.test(configured)) return configured;
+  const host = (req.get('host') || '').replace(/[^\w.:-]/g, '');
+  if (!host) return DEFAULT_CANONICAL_URL;
+  return `${req.protocol}://${host}`;
+}
+
+app.get('/robots.txt', (req, res) => {
+  const siteUrl = resolveSiteUrl(req);
+  res.type('text/plain').send(
+    `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /health\nDisallow: /ping\n\nSitemap: ${siteUrl}/sitemap.xml\n`
+  );
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  const siteUrl = resolveSiteUrl(req);
+  res.type('application/xml').send(
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+      `  <url>\n` +
+      `    <loc>${siteUrl}/</loc>\n` +
+      `    <changefreq>weekly</changefreq>\n` +
+      `    <priority>1.0</priority>\n` +
+      `  </url>\n` +
+      `</urlset>\n`
+  );
+});
+
 // Static Client Serving
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 const legacyPublic = path.join(__dirname, '..', 'public');
+const indexHtmlPath = path.join(clientDist, 'index.html');
+let cachedIndexHtml = null;
+
+function sendSpaIndex(req, res) {
+  if (!cachedIndexHtml && fs.existsSync(indexHtmlPath)) {
+    cachedIndexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+  }
+  if (!cachedIndexHtml) {
+    return res.status(404).send('Client build not found');
+  }
+
+  let html = cachedIndexHtml;
+  const siteUrl = resolveSiteUrl(req);
+  if (siteUrl !== DEFAULT_CANONICAL_URL) {
+    html = html.split(DEFAULT_CANONICAL_URL).join(siteUrl);
+  }
+
+  const verificationCode = (process.env.GOOGLE_SITE_VERIFICATION || '').trim().replace(/[^A-Za-z0-9_-]/g, '');
+  if (verificationCode) {
+    html = html.replace(
+      '</head>',
+      `  <meta name="google-site-verification" content="${verificationCode}" />\n  </head>`
+    );
+  }
+
+  res.setHeader('Cache-Control', 'no-cache');
+  res.type('text/html').send(html);
+}
 
 if (fs.existsSync(clientDist)) {
   app.use(
     express.static(clientDist, {
+      index: false,
+      maxAge: '7d',
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('index.html')) {
           res.setHeader('Cache-Control', 'no-cache');
@@ -133,7 +195,7 @@ if (fs.existsSync(clientDist)) {
     if (req.path.startsWith('/api')) {
       return res.status(404).json({ error: 'API endpoint not found' });
     }
-    res.sendFile(path.join(clientDist, 'index.html'));
+    sendSpaIndex(req, res);
   });
 } else {
   app.use(express.static(legacyPublic));
