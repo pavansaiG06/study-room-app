@@ -83,29 +83,6 @@ Because the application is packaged as a unified container where Express serves 
    - **Start Command:** `npm start`
 5. Click **Create Web Service**. Render gives you a free HTTPS URL with automatic WebSocket support!
 
-### Option B: Koyeb / Railway / Fly.io
-Deploy using the included `Dockerfile`:
-```bash
-docker build -t studyhub .
-docker run -p 3000:3000 -v studyhub-data:/app/data studyhub
-```
-
----
-
-## 🔒 Free STUN / TURN Setup
-
-The app is pre-configured with Google's free STUN servers:
-- `stun:stun.l.google.com:19302`
-- `stun:stun1.l.google.com:19302`
-
-If you have users behind strict symmetric enterprise firewalls, you can add free TURN relay credentials from [Metered.ca](https://www.metered.ca/tools/openrelay/) or [OpenRelay](https://www.metered.ca/openrelay/) into your environment variables:
-```env
-TURN_URL=turn:standard.relay.metered.ca:80
-TURN_USERNAME=your-username
-TURN_CREDENTIAL=your-credential
-```
-
----
 
 ## 📄 License
 MIT License. Free for educational and personal use.
